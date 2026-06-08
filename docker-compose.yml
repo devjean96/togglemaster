@@ -64,19 +64,19 @@ services:
     environment:
       APP_PORT: 8083
       PORT: 8083
-      DB_HOST: feature-db
+      DB_HOST: targeting-db
       DB_PORT: 5432
-      DB_NAME: featuredb
-      DB_USER: featureuser
-      DB_PASSWORD: featurepass
-      DATABASE_URL: postgres://featureuser:featurepass@feature-db:5432/featuredb?sslmode=disable
+      DB_NAME: targetingdb
+      DB_USER: targetinguser
+      DB_PASSWORD: targetingpass
+      DATABASE_URL: postgres://targetinguser:targetingpass@targeting-db:5432/targetingdb?sslmode=disable
       AUTH_SERVICE_URL: http://auth-service:8081
     ports:
       - "8083:8083"
     depends_on:
       auth-service:
         condition: service_healthy
-      feature-db:
+      targeting-db:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8083/health', timeout=3).read()\""]
@@ -189,9 +189,28 @@ services:
     volumes:
       - feature-db-data:/var/lib/postgresql/data
       - ./flag-service/db/init.sql:/docker-entrypoint-initdb.d/01-flags.sql:ro
-      - ./targeting-service/db/init.sql:/docker-entrypoint-initdb.d/02-targeting.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U featureuser -d featuredb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - togglemaster
+
+  targeting-db:
+    image: postgres:16-alpine
+    container_name: togglemaster-targeting-db
+    environment:
+      POSTGRES_DB: targetingdb
+      POSTGRES_USER: targetinguser
+      POSTGRES_PASSWORD: targetingpass
+    ports:
+      - "5435:5432"
+    volumes:
+      - targeting-db-data:/var/lib/postgresql/data
+      - ./targeting-service/db/init.sql:/docker-entrypoint-initdb.d/01-targeting.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U targetinguser -d targetingdb"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -279,3 +298,4 @@ networks:
 volumes:
   auth-db-data:
   feature-db-data:
+  targeting-db-data:
