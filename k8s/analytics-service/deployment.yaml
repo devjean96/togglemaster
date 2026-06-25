@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: togglemaster
+  labels:
+    app.kubernetes.io/name: analytics-service
+    app.kubernetes.io/part-of: togglemaster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: analytics-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: analytics-service
+        app.kubernetes.io/part-of: togglemaster
+    spec:
+      containers:
+        - name: analytics-service
+          image: ACCOUNT_ID_AWS.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8005
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-service-config
+                  key: PORT
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-service-config
+                  key: AWS_REGION
+            - name: AWS_DYNAMODB_TABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-service-config
+                  key: AWS_DYNAMODB_TABLE
+            - name: AWS_SQS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: AWS_SQS_URL
+            - name: SQS_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: SQS_ENDPOINT
+                  optional: true
+            - name: DYNAMODB_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: DYNAMODB_ENDPOINT
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: AWS_SESSION_TOKEN
+                  optional: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+
